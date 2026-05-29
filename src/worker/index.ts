@@ -9,12 +9,12 @@ type Event = {
 
 const app = new Hono<{ Bindings: { LEDGER: KVNamespace; USAGE: KVNamespace } }>();
 
-// HEALTH (TESTE DE BINDINGS)
+// HEALTH DEBUG REAL (bindings + runtime)
 app.get("/health", async (c) => {
   return c.json({
-    ok: true,
-    hasLedger: !!c.env.LEDGER,
-    hasUsage: !!c.env.USAGE,
+    keys: Object.keys(c.env || {}),
+    ledgerType: typeof c.env?.LEDGER,
+    usageType: typeof c.env?.USAGE,
   });
 });
 
@@ -29,7 +29,6 @@ app.post("/run", async (c) => {
     payload: body,
   };
 
-  // LEDGER
   const existing = await c.env.LEDGER.get("events");
   const ledger: Event[] = existing ? JSON.parse(existing) : [];
 
@@ -37,7 +36,6 @@ app.post("/run", async (c) => {
 
   await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
-  // USAGE
   const usageKey = "global_usage";
 
   const usageRaw = await c.env.USAGE.get(usageKey);
