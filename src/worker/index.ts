@@ -9,19 +9,16 @@ type Event = {
 
 const app = new Hono<{ Bindings: { LEDGER: KVNamespace; USAGE: KVNamespace } }>();
 
-// health check
+// HEALTH (TESTE DE BINDINGS)
 app.get("/health", async (c) => {
-  const existing = await c.env.LEDGER.get("events");
-  const ledger = existing ? JSON.parse(existing) : [];
-
   return c.json({
-    status: "ok",
-    service: "controlplane-engine",
-    events: ledger.length,
+    ok: true,
+    hasLedger: !!c.env.LEDGER,
+    hasUsage: !!c.env.USAGE,
   });
 });
 
-// execução de job
+// RUN JOB
 app.post("/run", async (c) => {
   const body = await c.req.json();
 
@@ -32,7 +29,7 @@ app.post("/run", async (c) => {
     payload: body,
   };
 
-  // LEDGER (eventos)
+  // LEDGER
   const existing = await c.env.LEDGER.get("events");
   const ledger: Event[] = existing ? JSON.parse(existing) : [];
 
@@ -40,7 +37,7 @@ app.post("/run", async (c) => {
 
   await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
-  // USAGE (contador global)
+  // USAGE
   const usageKey = "global_usage";
 
   const usageRaw = await c.env.USAGE.get(usageKey);
@@ -54,7 +51,7 @@ app.post("/run", async (c) => {
   });
 });
 
-// eventos
+// EVENTS
 app.get("/events", async (c) => {
   const existing = await c.env.LEDGER.get("events");
   const ledger = existing ? JSON.parse(existing) : [];
@@ -63,4 +60,3 @@ app.get("/events", async (c) => {
 });
 
 export default app;
-
