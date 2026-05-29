@@ -21,6 +21,12 @@ export default function App() {
     setHealth(data);
   }
 
+  async function loadEvents() {
+    const res = await fetch(`${API}/events`);
+    const data = await res.json();
+    setEvents(data);
+  }
+
   async function runJob() {
     setLoading(true);
 
@@ -39,19 +45,13 @@ export default function App() {
     setLoading(false);
   }
 
-  async function loadEvents() {
-    const res = await fetch(`${API}/events`);
-    const data = await res.json();
-    setEvents(data);
-  }
-
   useEffect(() => {
     loadHealth();
     loadEvents();
 
     const interval = setInterval(() => {
-      loadEvents();
       loadHealth();
+      loadEvents();
     }, 3000);
 
     return () => clearInterval(interval);
