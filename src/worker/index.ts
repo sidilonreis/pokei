@@ -7,13 +7,13 @@ type Event = {
   payload: any;
 };
 
-const app = new Hono();
-
-// memória temporária (depois vira KV/D1)
-const ledger: Event[] = [];
+const app = new Hono<{ Bindings: { LEDGER: KVNamespace } }>();
 
 // health check
-app.get("/health", (c) => {
+app.get("/health", async (c) => {
+  const existing = await c.env.LEDGER.get("events");
+  const ledger = existing ? JSON.parse(existing) : [];
+
   return c.json({
     status: "ok",
     service: "controlplane-engine",
@@ -21,7 +21,7 @@ app.get("/health", (c) => {
   });
 });
 
-// execução de job (core do SaaS)
+// execução de job (AGORA COM KV)
 app.post("/run", async (c) => {
   const body = await c.req.json();
 
@@ -32,7 +32,12 @@ app.post("/run", async (c) => {
     payload: body,
   };
 
+  const existing = await c.env.LEDGER.get("events");
+  const ledger: Event[] = existing ? JSON.parse(existing) : [];
+
   ledger.push(event);
+
+  await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
   return c.json({
     ok: true,
@@ -40,8 +45,11 @@ app.post("/run", async (c) => {
   });
 });
 
-// stream simples (base de observabilidade futura)
-app.get("/events", (c) => {
+// eventos (AGORA LENDO DO KV)
+app.get("/events", async (c) => {
+  const existing = await c.env.LEDGER.get("events");
+  const ledger = existing ? JSON.parse(existing) : [];
+
   return c.json(ledger);
 });
 
