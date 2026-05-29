@@ -1,66 +1,79 @@
-// src/App.tsx
-
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import cloudflareLogo from "./assets/Cloudflare_Logo.svg";
-import honoLogo from "./assets/hono.svg";
+import { useEffect, useState } from "react";
 import "./App.css";
 
-function App() {
-	const [count, setCount] = useState(0);
-	const [name, setName] = useState("unknown");
+type Event = {
+  id: string;
+  type: string;
+  timestamp: number;
+  payload: any;
+};
 
-	return (
-		<>
-			<div>
-				<a href="https://vite.dev" target="_blank">
-					<img src={viteLogo} className="logo" alt="Vite logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-				<a href="https://hono.dev/" target="_blank">
-					<img src={honoLogo} className="logo cloudflare" alt="Hono logo" />
-				</a>
-				<a href="https://workers.cloudflare.com/" target="_blank">
-					<img
-						src={cloudflareLogo}
-						className="logo cloudflare"
-						alt="Cloudflare logo"
-					/>
-				</a>
-			</div>
-			<h1>Vite + React + Hono + Cloudflare</h1>
-			<div className="card">
-				<button
-					onClick={() => setCount((count) => count + 1)}
-					aria-label="increment"
-				>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<div className="card">
-				<button
-					onClick={() => {
-						fetch("/api/")
-							.then((res) => res.json() as Promise<{ name: string }>)
-							.then((data) => setName(data.name));
-					}}
-					aria-label="get name"
-				>
-					Name from API is: {name}
-				</button>
-				<p>
-					Edit <code>worker/index.ts</code> to change the name
-				</p>
-			</div>
-			<p className="read-the-docs">Click on the logos to learn more</p>
-		</>
-	);
+export default function App() {
+  const [health, setHealth] = useState<any>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const API = "";
+
+  async function loadHealth() {
+    const res = await fetch(`${API}/health`);
+    const data = await res.json();
+    setHealth(data);
+  }
+
+  async function runJob() {
+    setLoading(true);
+
+    await fetch(`${API}/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "test-job",
+        time: Date.now(),
+      }),
+    });
+
+    await loadEvents();
+    await loadHealth();
+
+    setLoading(false);
+  }
+
+  async function loadEvents() {
+    const res = await fetch(`${API}/events`);
+    const data = await res.json();
+    setEvents(data);
+  }
+
+  useEffect(() => {
+    loadHealth();
+    loadEvents();
+
+    const interval = setInterval(() => {
+      loadEvents();
+      loadHealth();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
+      <h1>⚙️ ControlPlane SaaS</h1>
+
+      <div style={{ marginBottom: 20 }}>
+        <h3>🟢 Health</h3>
+        <pre>{JSON.stringify(health, null, 2)}</pre>
+      </div>
+
+      <button onClick={runJob} disabled={loading}>
+        {loading ? "Executando..." : "🚀 Run Job"}
+      </button>
+
+      <div style={{ marginTop: 20 }}>
+        <h3>📡 Events</h3>
+        <pre>{JSON.stringify(events, null, 2)}</pre>
+      </div>
+    </div>
+  );
 }
-
-export default App;
