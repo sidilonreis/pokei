@@ -7,7 +7,7 @@ type Event = {
   payload: any;
 };
 
-const app = new Hono<{ Bindings: { LEDGER: KVNamespace } }>();
+const app = new Hono<{ Bindings: { LEDGER: KVNamespace; USAGE: KVNamespace } }>();
 
 // health check
 app.get("/health", async (c) => {
@@ -21,7 +21,7 @@ app.get("/health", async (c) => {
   });
 });
 
-// execução de job (AGORA COM KV)
+// execução de job
 app.post("/run", async (c) => {
   const body = await c.req.json();
 
@@ -32,6 +32,7 @@ app.post("/run", async (c) => {
     payload: body,
   };
 
+  // LEDGER (eventos)
   const existing = await c.env.LEDGER.get("events");
   const ledger: Event[] = existing ? JSON.parse(existing) : [];
 
@@ -39,13 +40,21 @@ app.post("/run", async (c) => {
 
   await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
+  // USAGE (contador global)
+  const usageKey = "global_usage";
+
+  const usageRaw = await c.env.USAGE.get(usageKey);
+  const usage = usageRaw ? Number(usageRaw) : 0;
+
+  await c.env.USAGE.put(usageKey, String(usage + 1));
+
   return c.json({
     ok: true,
     event,
   });
 });
 
-// eventos (AGORA LENDO DO KV)
+// eventos
 app.get("/events", async (c) => {
   const existing = await c.env.LEDGER.get("events");
   const ledger = existing ? JSON.parse(existing) : [];
@@ -54,3 +63,4 @@ app.get("/events", async (c) => {
 });
 
 export default app;
+
