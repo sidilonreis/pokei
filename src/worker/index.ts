@@ -40,5 +40,5 @@ app.get("/events", async (c: any) => {
 
   return c.json(raw ? JSON.parse(raw) : []);
 });
-
+app.get("/", (c) => c.text("Pokei API está online!"));
 export default app;
