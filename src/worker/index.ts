@@ -1,5 +1,10 @@
 import { Hono } from "hono";
 
+type Bindings = {
+  LEDGER: KVNamespace;
+  USAGE: KVNamespace;
+};
+
 type Event = {
   id: string;
   type: string;
@@ -7,14 +12,9 @@ type Event = {
   payload: any;
 };
 
-type Bindings = {
-  LEDGER: KVNamespace;
-  USAGE: KVNamespace;
-};
-
 const app = new Hono<{ Bindings: Bindings }>();
 
-// HEALTH SIMPLES (SEM ASSUMIR NADA)
+// HEALTH
 app.get("/health", async (c) => {
   return c.json({
     ok: true,
@@ -22,7 +22,7 @@ app.get("/health", async (c) => {
   });
 });
 
-// RUN (GRAVA EVENTO NO KV)
+// RUN
 app.post("/run", async (c) => {
   const body = await c.req.json();
 
@@ -33,13 +33,13 @@ app.post("/run", async (c) => {
     payload: body,
   };
 
-  // tenta pegar ledger existente
-  const raw = await c.env?.LEDGER?.get("events");
+  const raw = await c.env.LEDGER.get("events");
+
   const ledger: Event[] = raw ? JSON.parse(raw) : [];
 
   ledger.push(event);
 
-  await c.env?.LEDGER?.put("events", JSON.stringify(ledger));
+  await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
   return c.json({
     ok: true,
@@ -49,7 +49,8 @@ app.post("/run", async (c) => {
 
 // EVENTS
 app.get("/events", async (c) => {
-  const raw = await c.env?.LEDGER?.get("events");
+  const raw = await c.env.LEDGER.get("events");
+
   return c.json(raw ? JSON.parse(raw) : []);
 });
 
