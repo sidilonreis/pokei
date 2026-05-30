@@ -1,14 +1,38 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Vite + React + TS</title>
-	</head>
+import { Hono } from "hono";
 
-	<body>
-		<div id="root"></div>
-		<script type="module" src="/src/react-app/main.tsx"></script>
-	</body>
-</html>
+type Event = {
+  id: string;
+  type: string;
+  timestamp: number;
+  payload: any;
+};
+
+const app = new Hono<{ Bindings: { LEDGER: KVNamespace; USAGE: KVNamespace } }>();
+
+// HEALTH
+app.get("/health", async (c) => {
+  return c.json({
+    ok: true,
+    env_keys: Object.keys(c.env || {}),
+    ledger_type: typeof c.env?.LEDGER,
+    usage_type: typeof c.env?.USAGE,
+  });
+});
+
+// RUN (DEBUG DE BINDINGS)
+app.post("/run", async (c) => {
+  return c.json({
+    env_keys: Object.keys(c.env || {}),
+    ledger_type: typeof c.env?.LEDGER,
+    usage_type: typeof c.env?.USAGE,
+  });
+});
+
+// EVENTS
+app.get("/events", async (c) => {
+  const existing = await c.env.LEDGER?.get("events");
+  const ledger = existing ? JSON.parse(existing) : [];
+  return c.json(ledger);
+});
+
+export default app;
