@@ -12,7 +12,7 @@ type Event = {
   payload: any;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<any>();
 
 // HEALTH
 app.get("/health", async (c) => {
