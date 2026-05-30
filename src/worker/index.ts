@@ -9,16 +9,25 @@ type Event = {
 
 const app = new Hono<{ Bindings: { LEDGER: KVNamespace; USAGE: KVNamespace } }>();
 
-// HEALTH DEBUG REAL (bindings + runtime)
+// HEALTH CHECK
 app.get("/health", async (c) => {
+  const ledgerTest = await c.env.LEDGER?.get("events");
+  const usageTest = await c.env.USAGE?.get("global_usage");
+
   return c.json({
-    keys: Object.keys(c.env || {}),
-    ledgerType: typeof c.env?.LEDGER,
-    usageType: typeof c.env?.USAGE,
+    status: "ok",
+    bindings: {
+      LEDGER: !!c.env?.LEDGER,
+      USAGE: !!c.env?.USAGE,
+    },
+    kv_test: {
+      ledger_has_data: !!ledgerTest,
+      usage_has_data: !!usageTest,
+    },
   });
 });
 
-// RUN JOB
+// RUN JOB (GRAVA NO KV)
 app.post("/run", async (c) => {
   const body = await c.req.json();
 
@@ -36,25 +45,22 @@ app.post("/run", async (c) => {
 
   await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
-  const usageKey = "global_usage";
-
-  const usageRaw = await c.env.USAGE.get(usageKey);
+  const usageRaw = await c.env.USAGE.get("global_usage");
   const usage = usageRaw ? Number(usageRaw) : 0;
 
-  await c.env.USAGE.put(usageKey, String(usage + 1));
+  await c.env.USAGE.put("global_usage", String(usage + 1));
 
   return c.json({
     ok: true,
     event,
+    saved: true,
   });
 });
 
 // EVENTS
 app.get("/events", async (c) => {
-  const existing = await c.env.LEDGER.get("events");
-  const ledger = existing ? JSON.parse(existing) : [];
-
-  return c.json(ledger);
+  const data = await c.env.LEDGER.get("events");
+  return c.json(data ? JSON.parse(data) : []);
 });
 
 export default app;
