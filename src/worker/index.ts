@@ -1,41 +1,32 @@
 import { Hono } from "hono";
 
-type Event = {
-  id: string;
-  type: string;
-  timestamp: number;
-  payload: any;
-};
-
 const app = new Hono();
 
 // HEALTH
-app.get("/health", async (c) => {
+app.get("/health", (c: any) => {
   return c.json({
     ok: true,
   });
 });
 
 // RUN
-app.post("/run", async (c) => {
-  const env: any = c.env;
-
+app.post("/run", async (c: any) => {
   const body = await c.req.json();
 
-  const event: Event = {
+  const event = {
     id: crypto.randomUUID(),
     type: "job.executed",
     timestamp: Date.now(),
     payload: body,
   };
 
-  const raw = await env.LEDGER.get("events");
+  const raw = await c.env.LEDGER.get("events");
 
-  const ledger: Event[] = raw ? JSON.parse(raw) : [];
+  const ledger = raw ? JSON.parse(raw) : [];
 
   ledger.push(event);
 
-  await env.LEDGER.put("events", JSON.stringify(ledger));
+  await c.env.LEDGER.put("events", JSON.stringify(ledger));
 
   return c.json({
     ok: true,
@@ -44,10 +35,8 @@ app.post("/run", async (c) => {
 });
 
 // EVENTS
-app.get("/events", async (c) => {
-  const env: any = c.env;
-
-  const raw = await env.LEDGER.get("events");
+app.get("/events", async (c: any) => {
+  const raw = await c.env.LEDGER.get("events");
 
   return c.json(raw ? JSON.parse(raw) : []);
 });
