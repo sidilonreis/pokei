@@ -7,7 +7,12 @@ type Event = {
   payload: any;
 };
 
-const app = new Hono();
+type Bindings = {
+  LEDGER: KVNamespace;
+  USAGE: KVNamespace;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
 
 // HEALTH SIMPLES (SEM ASSUMIR NADA)
 app.get("/health", async (c) => {
