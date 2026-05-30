@@ -18,7 +18,7 @@ app.get("/health", async (c) => {
 
 // RUN
 app.post("/run", async (c) => {
-  const env = c.env as any;
+  const env: any = c.env;
 
   const body = await c.req.json();
 
@@ -45,7 +45,7 @@ app.post("/run", async (c) => {
 
 // EVENTS
 app.get("/events", async (c) => {
-  const env = c.env as any;
+  const env: any = c.env;
 
   const raw = await env.LEDGER.get("events");
 
